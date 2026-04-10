@@ -25,7 +25,7 @@ export function DoujinshiSearch({ onSelect }: Props) {
     setError(null)
     setSearched(true)
     try {
-      const isId = /^\d+$/.test(query.trim())
+      const isId = /^\d{3,}$/.test(query.trim())
 
       // 如果是数字，可能既是JM号也是作品名包含数字
       // 因此我们可以并发请求：获取详情(作为精确JM号匹配) + 模糊搜索，合并结果
