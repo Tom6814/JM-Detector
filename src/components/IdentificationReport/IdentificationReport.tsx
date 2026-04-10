@@ -1,6 +1,6 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { AlertTriangle, CheckCircle2, HelpCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, HelpCircle, MinusCircle } from 'lucide-react'
 
 export interface IdentificationResult {
   avoid: Record<string, boolean>
@@ -49,7 +49,7 @@ export function IdentificationReport({ result, loading }: Props) {
                     : 'bg-zinc-800/30 border-zinc-700 text-zinc-400'
                 }`}
               >
-                {value ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4 opacity-50" />}
+                {value ? <AlertTriangle className="w-4 h-4" /> : <MinusCircle className="w-4 h-4 opacity-50" />}
                 <span className="font-medium">{key}</span>
               </div>
             ))}
