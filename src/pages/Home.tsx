@@ -70,7 +70,7 @@ ${detail.search_context && detail.search_context.length > 0 ? detail.search_cont
 - 喜欢清单（非常喜欢，重点关注）：${preferences.like.join(', ')}
 
 # Output Format
-请严格输出合法的 JSON 对象。包含 `avoid`（避雷判定）和 `like`（喜欢判定）两个子对象。键名为清单中的具体元素，键值为布尔值（true 代表判定包含，false 代表判定不包含）。为了方便排查，请在 `reasoning` 字段给出判定依据。
+请严格输出合法的 JSON 对象。包含 \`avoid\`（避雷判定）和 \`like\`（喜欢判定）两个子对象。键名为清单中的具体元素，键值为布尔值（true 代表判定包含，false 代表判定不包含）。为了方便排查，请在 \`reasoning\` 字段给出判定依据。
 
 {
   "avoid": {
