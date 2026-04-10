@@ -52,7 +52,7 @@ export default function Home() {
 
 # Task Workflow
 1. **信息审视**：仔细分析提供的漫画标题、简介和所有标签。
-2. **深度挖掘（内部知识库）**：结合你的内部知识库（如果该漫画是已有一定知名度的作品），推断其可能的剧情走向和同人设定。注意：你当前无法直接访问互联网进行搜索，也无法查看网页最新评论，请不要在回复中捏造搜索过程，直接给出你的判断。
+2. **深度挖掘（网络与评论）**：参考提供的真实读者评论以及外部搜索引擎结果，推断其真实剧情走向和同人设定。
 3. **精准匹配**：将漫画的实际内容与用户提供的【避雷清单】和【喜欢清单】进行逐一、严格的比对。
 4. **格式化输出**：严格按照规定的 JSON 格式输出最终结论，确保能够被后端程序直接解析，不要输出任何 JSON 之外的问候语或解释性纯文本。
 
@@ -61,14 +61,16 @@ export default function Home() {
 - 漫画简介：${detail.description || '无'}
 - 漫画标签：${detail.tags.join(', ')}
 - 漫画相关评论如下：
-${detail.comments && detail.comments.length > 0 ? detail.comments.slice(0, 20).join('\n') : '无相关评论'}
+${detail.comments && detail.comments.length > 0 ? detail.comments.slice(0, 30).join('\n') : '无相关评论'}
+- 外部搜索引擎结果参考（可选）：
+${detail.search_context && detail.search_context.length > 0 ? detail.search_context.join('\n') : '无相关搜索结果'}
 
 # User Preferences
 - 避雷清单（极度讨厌，绝对不能接受）：${preferences.avoid.join(', ')}
 - 喜欢清单（非常喜欢，重点关注）：${preferences.like.join(', ')}
 
 # Output Format
-请严格输出合法的 JSON 对象。包含 \`avoid\`（避雷判定）和 \`like\`（喜欢判定）两个子对象。键名为清单中的具体元素，键值为布尔值（true 代表判定包含，false 代表判定不包含）。为了方便排查，请在 \`reasoning\` 字段给出判定依据。
+请严格输出合法的 JSON 对象。包含 `avoid`（避雷判定）和 `like`（喜欢判定）两个子对象。键名为清单中的具体元素，键值为布尔值（true 代表判定包含，false 代表判定不包含）。为了方便排查，请在 `reasoning` 字段给出判定依据。
 
 {
   "avoid": {
@@ -79,7 +81,7 @@ ${detail.comments && detail.comments.length > 0 ? detail.comments.slice(0, 20).j
     "喜欢元素1": true,
     "喜欢元素2": false
   },
-  "reasoning": "一句话点名你的主观观点（完美结合用户喜好），然后分点说明判定理由，例如：标签中包含XX，且简介暗示了XX发展，因此判定包含避雷元素1...，可以带有一点情感色彩，Markdown格式"
+  "reasoning": "用极其激进、暴躁、或者极度赞美的语气进行一句话总评（例如“纯屎”、“神作”、“恭喜你吃到shi了”、“快跑！！”），然后分点说明判定理由（结合用户喜好与避雷清单），Markdown格式"
 }
 `
 
