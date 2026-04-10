@@ -26,46 +26,50 @@ export function DoujinshiSearch({ onSelect }: Props) {
     setSearched(true)
     try {
       const isId = /^\d+$/.test(query.trim())
-      let res
+
+      // 如果是数字，可能既是JM号也是作品名包含数字
+      // 因此我们可以并发请求：获取详情(作为精确JM号匹配) + 模糊搜索，合并结果
+      let finalResults: Doujinshi[] = []
 
       if (isId) {
-        // 直接通过ID获取信息
-        res = await fetch(`/api/jm/details/${query.trim()}`)
+        const [detailRes, searchRes] = await Promise.all([
+          fetch(`/api/jm/details/${query.trim()}`),
+          fetch(`/api/jm/search?keyword=${encodeURIComponent(query)}`)
+        ])
+
+        if (detailRes.ok) {
+          const detailData = await detailRes.json()
+          if (detailData.success && detailData.data && detailData.data.title) {
+            finalResults.push({ id: detailData.data.id, title: detailData.data.title, image: detailData.data.image })
+          }
+        }
+
+        if (searchRes.ok) {
+          const searchData = await searchRes.json()
+          if (searchData.success && Array.isArray(searchData.data)) {
+            // 合并时去重
+            searchData.data.forEach((item: Doujinshi) => {
+              if (!finalResults.find(r => r.id === item.id)) {
+                finalResults.push(item)
+              }
+            })
+          }
+        }
       } else {
         // 名称搜索
-        res = await fetch(`/api/jm/search?keyword=${encodeURIComponent(query)}`)
-      }
-
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(`请求失败 (${res.status}): ${text.slice(0, 50)}`)
-      }
-
-      const contentType = res.headers.get('content-type')
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await res.text()
-        throw new Error(`服务器返回了非预期的格式: ${text.slice(0, 50)}`)
-      }
-
-      const data = await res.json()
-      
-      if (!data.success) {
-        throw new Error(data.error || '获取数据失败')
-      }
-
-      if (isId) {
-        if (data.data && data.data.title) {
-          setResults([{ id: data.data.id, title: data.data.title }])
-        } else {
-          setResults([])
+        const res = await fetch(`/api/jm/search?keyword=${encodeURIComponent(query)}`)
+        if (!res.ok) {
+          const text = await res.text()
+          throw new Error(`请求失败 (${res.status}): ${text.slice(0, 50)}`)
         }
-      } else {
+        const data = await res.json()
+        if (!data.success) throw new Error(data.error || '获取数据失败')
         if (Array.isArray(data.data)) {
-          setResults(data.data)
-        } else {
-          setResults([])
+          finalResults = data.data
         }
       }
+
+      setResults(finalResults)
     } catch (err: any) {
       setError(err.message || '搜索失败')
     } finally {
