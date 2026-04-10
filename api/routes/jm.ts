@@ -10,9 +10,14 @@ const __dirname = path.dirname(__filename)
 
 const pythonScriptPath = path.join(__dirname, '..', 'jm_proxy.py')
 
-const runPythonScript = (inputData: object): Promise<any> => {
+const runPythonScript = (inputData: object, timeoutMs: number = 25000): Promise<any> => {
   return new Promise((resolve, reject) => {
     const pythonProcess = spawn('python', [pythonScriptPath])
+
+    const timeoutId = setTimeout(() => {
+      pythonProcess.kill('SIGKILL')
+      reject(new Error(`请求超时 (${timeoutMs}ms)，可能是 JMComic 服务器不稳定或被屏蔽`))
+    }, timeoutMs)
 
     let outputData = ''
     let errorData = ''
@@ -26,6 +31,7 @@ const runPythonScript = (inputData: object): Promise<any> => {
     })
 
     pythonProcess.on('close', (code) => {
+      clearTimeout(timeoutId)
       if (code !== 0 && !outputData) {
         return reject(new Error(`Python script exited with code ${code}. Error: ${errorData}`))
       }
@@ -37,7 +43,7 @@ const runPythonScript = (inputData: object): Promise<any> => {
           const result = JSON.parse(jsonStr)
           resolve(result)
         } else {
-          reject(new Error('No valid JSON output found: ' + outputData))
+          reject(new Error('No valid JSON output found. Python Output: ' + outputData))
         }
       } catch (err) {
         reject(new Error('Failed to parse Python script output: ' + outputData))

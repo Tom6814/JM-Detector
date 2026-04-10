@@ -17,7 +17,10 @@ export function AIConfig() {
       if (url.includes('generativelanguage.googleapis.com')) {
         // Gemini API test
         const res = await fetch(`${url}/models?key=${aiConfig.apiKey}`)
-        if (!res.ok) throw new Error('API request failed')
+        if (!res.ok) {
+          const text = await res.text()
+          throw new Error(`API request failed: ${res.status} ${text.slice(0, 50)}`)
+        }
       } else {
         // OpenAI format test
         const res = await fetch(`${url}/models`, {
@@ -25,7 +28,10 @@ export function AIConfig() {
             Authorization: `Bearer ${aiConfig.apiKey}`,
           },
         })
-        if (!res.ok) throw new Error('API request failed')
+        if (!res.ok) {
+          const text = await res.text()
+          throw new Error(`API request failed: ${res.status} ${text.slice(0, 50)}`)
+        }
       }
       setTestResult('success')
       setAiConfig({ isValidated: true })

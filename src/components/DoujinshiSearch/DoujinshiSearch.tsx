@@ -25,28 +25,42 @@ export function DoujinshiSearch({ onSelect }: Props) {
     setError(null)
     setSearched(true)
     try {
-      // 检查是否为纯数字，如果是数字可能直接查询详情
       const isId = /^\d+$/.test(query.trim())
+      let res
 
       if (isId) {
         // 直接通过ID获取信息
-        const res = await fetch(`/api/jm/details/${query.trim()}`)
-        const data = await res.json()
-        if (data.success && data.data && data.data.title) {
-          setResults([
-            {
-              id: data.data.id,
-              title: data.data.title,
-            },
-          ])
+        res = await fetch(`/api/jm/details/${query.trim()}`)
+      } else {
+        // 名称搜索
+        res = await fetch(`/api/jm/search?keyword=${encodeURIComponent(query)}`)
+      }
+
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(`请求失败 (${res.status}): ${text.slice(0, 50)}`)
+      }
+
+      const contentType = res.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await res.text()
+        throw new Error(`服务器返回了非预期的格式: ${text.slice(0, 50)}`)
+      }
+
+      const data = await res.json()
+      
+      if (!data.success) {
+        throw new Error(data.error || '获取数据失败')
+      }
+
+      if (isId) {
+        if (data.data && data.data.title) {
+          setResults([{ id: data.data.id, title: data.data.title }])
         } else {
           setResults([])
         }
       } else {
-        // 名称搜索
-        const res = await fetch(`/api/jm/search?keyword=${encodeURIComponent(query)}`)
-        const data = await res.json()
-        if (data.success && Array.isArray(data.data)) {
+        if (Array.isArray(data.data)) {
           setResults(data.data)
         } else {
           setResults([])

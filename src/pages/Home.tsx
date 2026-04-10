@@ -27,6 +27,17 @@ export default function Home() {
     try {
       // 获取本子详情
       const res = await fetch(`/api/jm/details/${selectedDoujinshi.id}`)
+      
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(`获取详情失败 (${res.status}): ${text.slice(0, 50)}`)
+      }
+      const contentType = res.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await res.text()
+        throw new Error(`非预期的响应格式: ${text.slice(0, 50)}`)
+      }
+
       const data = await res.json()
 
       if (!data.success) {
@@ -107,7 +118,14 @@ ${detail.comments && detail.comments.length > 0 ? detail.comments.slice(0, 20).j
       }
 
       if (!aiRes.ok) {
-        throw new Error('AI API 请求失败: ' + aiRes.statusText)
+        const text = await aiRes.text()
+        throw new Error(`AI API 请求失败 (${aiRes.status}): ${text.slice(0, 50)}`)
+      }
+
+      const aiContentType = aiRes.headers.get('content-type')
+      if (!aiContentType || !aiContentType.includes('application/json')) {
+        const text = await aiRes.text()
+        throw new Error(`AI API 返回了非 JSON 格式数据: ${text.slice(0, 50)}`)
       }
 
       const aiData = await aiRes.json()
