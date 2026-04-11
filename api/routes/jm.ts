@@ -36,17 +36,18 @@ const runPythonScript = (inputData: object, timeoutMs: number = 25000): Promise<
         return reject(new Error(`Python script exited with code ${code}. Error: ${errorData}`))
       }
       try {
-        // Try to extract JSON from the output, in case there are other logs printed
-        const match = outputData.match(/\{[\s\S]*\}/)
-        if (match) {
-          const jsonStr = match[0]
+        const firstBrace = outputData.indexOf('{')
+        const lastBrace = outputData.lastIndexOf('}')
+        
+        if (firstBrace !== -1 && lastBrace !== -1) {
+          const jsonStr = outputData.slice(firstBrace, lastBrace + 1)
           const result = JSON.parse(jsonStr)
           resolve(result)
         } else {
-          reject(new Error('No valid JSON output found. Python Output: ' + outputData))
+          reject(new Error('No valid JSON output found. Python Output: ' + outputData.slice(0, 100) + '...'))
         }
       } catch (err) {
-        reject(new Error('Failed to parse Python script output: ' + outputData))
+        reject(new Error('Failed to parse Python script output: ' + outputData.slice(0, 100) + '...'))
       }
     })
 

@@ -3,8 +3,8 @@ import remarkGfm from 'remark-gfm'
 import { AlertTriangle, CheckCircle2, HelpCircle, MinusCircle } from 'lucide-react'
 
 export interface IdentificationResult {
-  avoid: Record<string, boolean>
-  like: Record<string, boolean>
+  avoid: Record<string, { contains: boolean; probability: number }>
+  like: Record<string, { contains: boolean; probability: number }>
   reasoning: string
 }
 
@@ -43,14 +43,17 @@ export function IdentificationReport({ result, loading }: Props) {
             {Object.entries(result.avoid).map(([key, value]) => (
               <div
                 key={key}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
-                  value
+                className={`flex flex-col px-3 py-2 rounded-lg border ${
+                  value.contains
                     ? 'bg-red-500/10 border-red-500/50 text-red-400'
                     : 'bg-zinc-800/30 border-zinc-700 text-zinc-400'
                 }`}
               >
-                {value ? <AlertTriangle className="w-4 h-4" /> : <MinusCircle className="w-4 h-4 opacity-50" />}
-                <span className="font-medium">{key}</span>
+                <div className="flex items-center gap-2 mb-1">
+                  {value.contains ? <AlertTriangle className="w-4 h-4" /> : <MinusCircle className="w-4 h-4 opacity-50" />}
+                  <span className="font-medium">{key}</span>
+                </div>
+                <span className="text-xs opacity-80 pl-6">概率: {value.probability}%</span>
               </div>
             ))}
           </div>
@@ -66,14 +69,17 @@ export function IdentificationReport({ result, loading }: Props) {
             {Object.entries(result.like).map(([key, value]) => (
               <div
                 key={key}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
-                  value
+                className={`flex flex-col px-3 py-2 rounded-lg border ${
+                  value.contains
                     ? 'bg-green-500/10 border-green-500/50 text-green-400'
                     : 'bg-zinc-800/30 border-zinc-700 text-zinc-400'
                 }`}
               >
-                {value ? <CheckCircle2 className="w-4 h-4" /> : <HelpCircle className="w-4 h-4 opacity-50" />}
-                <span className="font-medium">{key}</span>
+                <div className="flex items-center gap-2 mb-1">
+                  {value.contains ? <CheckCircle2 className="w-4 h-4" /> : <HelpCircle className="w-4 h-4 opacity-50" />}
+                  <span className="font-medium">{key}</span>
+                </div>
+                <span className="text-xs opacity-80 pl-6">概率: {value.probability}%</span>
               </div>
             ))}
           </div>

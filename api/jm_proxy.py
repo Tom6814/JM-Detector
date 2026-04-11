@@ -3,6 +3,7 @@ import json
 import traceback
 import jmcomic
 import re
+import base64
 from duckduckgo_search import DDGS
 
 def search_comic(query):
@@ -66,6 +67,28 @@ def search_ddg(query):
         print(f"DDG search failed: {e}", file=sys.stderr)
         return []
 
+def get_image_base64(client, album_id):
+    try:
+        # We can use the client to fetch the image to avoid blocking
+        domain = client.domain_list[0] if client.domain_list else 'cdn-18comic.art'
+        url = f'https://{domain}/media/albums/{album_id}_3x4.jpg'
+        resp = client.get(url)
+        return base64.b64encode(resp.content).decode('utf-8')
+    except Exception as e:
+        print(f"Failed to fetch image for {album_id}: {e}", file=sys.stderr)
+        return ""
+
+def search_author_context(authors):
+    results = []
+    if isinstance(authors, str):
+        authors = [authors]
+    for author in authors:
+        if not author: continue
+        query = f"{author} 漫画作者 作品 风格 评价"
+        res = search_ddg(query)
+        results.append({"author": author, "context": res})
+    return results
+
 def get_comic_detail(album_id):
     try:
         client = jmcomic.JmOption.default().build_jm_client()
@@ -84,14 +107,21 @@ def get_comic_detail(album_id):
             # Add some context using duckduckgo
             search_context = search_ddg(f"{title} 同人志 漫画 评价 避雷")
             
+        authors = album.author if hasattr(album, 'author') else []
+        author_context = search_author_context(authors)
+        
+        image_base64 = get_image_base64(client, album_id)
+            
         return {
             'id': album.album_id if hasattr(album, 'album_id') else album_id,
             'title': title,
             'description': description,
             'tags': tags,
-            'author': album.author if hasattr(album, 'author') else "",
+            'author': authors,
             'comments': comments,
-            'search_context': search_context
+            'search_context': search_context,
+            'author_context': author_context,
+            'image_base64': image_base64
         }
     except Exception as e:
         return {"error": str(e), "trace": traceback.format_exc()}

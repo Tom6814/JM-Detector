@@ -51,8 +51,8 @@ export default function Home() {
 你是一位极其严谨且经验丰富的“专业漫画及同人志成分鉴定师”。你的核心任务是保护读者的阅读体验，精准分析并预测作品中是否含有读者无法接受的“避雷”内容，同时标记出读者期待的“喜好”内容。
 
 # Task Workflow
-1. **信息审视**：仔细分析提供的漫画标题、简介和所有标签。
-2. **深度挖掘（网络与评论）**：参考提供的真实读者评论以及外部搜索引擎结果，推断其真实剧情走向和同人设定。
+1. **信息审视**：仔细分析提供的漫画封面图片、标题、简介和所有标签。
+2. **深度挖掘（网络与评论）**：参考提供的真实读者评论，以及针对漫画作者风格的外部搜索引擎结果，推断其真实剧情走向和同人设定。
 3. **精准匹配**：将漫画的实际内容与用户提供的【避雷清单】和【喜欢清单】进行逐一、严格的比对。
 4. **格式化输出**：严格按照规定的 JSON 格式输出最终结论，确保能够被后端程序直接解析，不要输出任何 JSON 之外的问候语或解释性纯文本。
 
@@ -60,6 +60,8 @@ export default function Home() {
 - 漫画标题：${detail.title}
 - 漫画简介：${detail.description || '无'}
 - 漫画标签：${detail.tags.join(', ')}
+- 漫画作者及相关搜索结果：
+${detail.author_context && detail.author_context.length > 0 ? detail.author_context.map((a: any) => `作者：${a.author}，相关评价：${a.context.join(' | ')}`).join('\n') : '无相关作者搜索结果'}
 - 漫画相关评论如下：
 ${detail.comments && detail.comments.length > 0 ? detail.comments.slice(0, 30).join('\n') : '无相关评论'}
 - 外部搜索引擎结果参考（可选）：
@@ -70,18 +72,20 @@ ${detail.search_context && detail.search_context.length > 0 ? detail.search_cont
 - 喜欢清单（非常喜欢，重点关注）：${preferences.like.join(', ')}
 
 # Output Format
-请严格输出合法的 JSON 对象。包含 \`avoid\`（避雷判定）和 \`like\`（喜欢判定）两个子对象。键名为清单中的具体元素，键值为布尔值（true 代表判定包含，false 代表判定不包含）。为了方便排查，请在 \`reasoning\` 字段给出判定依据。
+请严格输出合法的 JSON 对象。包含 \`avoid\`（避雷判定）和 \`like\`（喜欢判定）两个子对象。
+每个元素的键名为清单中的具体元素，键值为一个对象，包含 \`contains\` (布尔值，是否包含) 和 \`probability\` (数字 0-100，包含的概率百分比)。
+为了方便排查，请在 \`reasoning\` 字段给出判定依据。
 
 {
   "avoid": {
-    "避雷元素1": true,
-    "避雷元素2": false
+    "避雷元素1": { "contains": true, "probability": 90 },
+    "避雷元素2": { "contains": false, "probability": 10 }
   },
   "like": {
-    "喜欢元素1": true,
-    "喜欢元素2": false
+    "喜欢元素1": { "contains": true, "probability": 85 },
+    "喜欢元素2": { "contains": false, "probability": 5 }
   },
-  "reasoning": "用极其激进、暴躁、或者极度赞美的语气进行一句话总评（例如“纯屎”、“神作”、“恭喜你吃到shi了”、“快跑！！”），然后分点说明判定理由（结合用户喜好与避雷清单），Markdown格式"
+  "reasoning": "用极其激进、暴躁、或者极度赞美的语气进行一句话总评（例如“纯屎”、“神作”、“恭喜你吃到shi了”、“快跑！！”），然后分点说明判定理由（结合图片封面、作者风格、评论、用户喜好与避雷清单），Markdown格式"
 }
 `
 
@@ -89,18 +93,38 @@ ${detail.search_context && detail.search_context.length > 0 ? detail.search_cont
       const baseUrl = aiConfig.baseUrl.replace(/\/$/, '')
       let aiRes
 
+      const imagePartGemini = detail.image_base64 ? {
+        inlineData: {
+          mimeType: "image/jpeg",
+          data: detail.image_base64
+        }
+      } : null;
+
+      const imagePartOpenAI = detail.image_base64 ? {
+        type: "image_url",
+        image_url: {
+          url: `data:image/jpeg;base64,${detail.image_base64}`
+        }
+      } : null;
+
       if (baseUrl.includes('generativelanguage.googleapis.com')) {
         // Gemini API
+        const parts = [{ text: prompt }];
+        if (imagePartGemini) parts.unshift(imagePartGemini as any);
+
         aiRes = await fetch(`${baseUrl}/models/${aiConfig.model}:generateContent?key=${aiConfig.apiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
+            contents: [{ parts }],
             generationConfig: { responseMimeType: 'application/json' }
           }),
         })
       } else {
         // OpenAI format
+        const contentArr = [{ type: "text", text: prompt }];
+        if (imagePartOpenAI) contentArr.unshift(imagePartOpenAI as any);
+
         aiRes = await fetch(`${baseUrl}/chat/completions`, {
           method: 'POST',
           headers: {
@@ -111,7 +135,7 @@ ${detail.search_context && detail.search_context.length > 0 ? detail.search_cont
             model: aiConfig.model,
             messages: [
               { role: 'system', content: 'You are a helpful assistant that only outputs valid JSON.' },
-              { role: 'user', content: prompt }
+              { role: 'user', content: contentArr }
             ],
             response_format: { type: 'json_object' },
             temperature: 0.7
