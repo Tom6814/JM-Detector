@@ -59,9 +59,9 @@ def get_real_comments(client, album_id):
         print(f"Failed to get real comments: {e}", file=sys.stderr)
         return []
 
-def search_ddg(query):
+def search_ddg(query, max_results=12):
     try:
-        results = DDGS().text(query, max_results=3)
+        results = DDGS().text(query, max_results=max_results)
         return [res['body'] for res in results]
     except Exception as e:
         print(f"DDG search failed: {e}", file=sys.stderr)
@@ -89,7 +89,7 @@ def search_author_context(authors):
         results.append({"author": author, "context": res})
     return results
 
-def get_comic_detail(album_id):
+def get_comic_detail(album_id, skip_search=False):
     try:
         client = jmcomic.JmOption.default().build_jm_client()
         album = client.get_album_detail(album_id)
@@ -103,12 +103,14 @@ def get_comic_detail(album_id):
         # If no comments, try web search context
         search_context = []
         title = album.title if hasattr(album, 'title') else ""
-        if title:
+        if title and not skip_search:
             # Add some context using duckduckgo
             search_context = search_ddg(f"{title} 同人志 漫画 评价 避雷")
             
         authors = album.author if hasattr(album, 'author') else []
-        author_context = search_author_context(authors)
+        author_context = []
+        if not skip_search:
+            author_context = search_author_context(authors)
         
         image_base64 = get_image_base64(client, album_id)
             
@@ -140,7 +142,7 @@ def main():
             res = search_comic(req.get('query', ''))
             print(json.dumps({"success": True, "data": res}))
         elif action == 'detail':
-            res = get_comic_detail(req.get('id'))
+            res = get_comic_detail(req.get('id'), req.get('skip_search', False))
             print(json.dumps({"success": True, "data": res}))
         else:
             print(json.dumps({"error": "Unknown action"}))

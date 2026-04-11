@@ -26,7 +26,7 @@ export default function Home() {
 
     try {
       // 获取本子详情
-      const res = await fetch(`/api/jm/details/${selectedDoujinshi.id}`)
+      const res = await fetch(`/api/jm/details/${selectedDoujinshi.id}?skip_search=${aiConfig.isGeminiFormat}`)
       
       if (!res.ok) {
         const text = await res.text()
@@ -52,7 +52,7 @@ export default function Home() {
 
 # Task Workflow
 1. **信息审视**：仔细分析提供的漫画封面图片、标题、简介和所有标签。
-2. **深度挖掘（网络与评论）**：参考提供的真实读者评论，以及针对漫画作者风格的外部搜索引擎结果，推断其真实剧情走向和同人设定。
+2. **深度挖掘（网络与评论）**：参考提供的真实读者评论。${aiConfig.isGeminiFormat ? '由于当前已为你开启内置网络搜索功能，请务必亲自搜索该漫画的作者风格、真实剧情走向和同人设定。' : '参考针对漫画作者风格的外部搜索引擎结果，推断其真实剧情走向和同人设定。'}
 3. **精准匹配**：将漫画的实际内容与用户提供的【避雷清单】和【喜欢清单】进行逐一、严格的比对。
 4. **格式化输出**：严格按照规定的 JSON 格式输出最终结论，确保能够被后端程序直接解析，不要输出任何 JSON 之外的问候语或解释性纯文本。
 
@@ -60,12 +60,10 @@ export default function Home() {
 - 漫画标题：${detail.title}
 - 漫画简介：${detail.description || '无'}
 - 漫画标签：${detail.tags.join(', ')}
-- 漫画作者及相关搜索结果：
-${detail.author_context && detail.author_context.length > 0 ? detail.author_context.map((a: any) => `作者：${a.author}，相关评价：${a.context.join(' | ')}`).join('\n') : '无相关作者搜索结果'}
+${aiConfig.isGeminiFormat ? '' : `- 漫画作者及相关搜索结果：\n${detail.author_context && detail.author_context.length > 0 ? detail.author_context.map((a: any) => `作者：${a.author}，相关评价：${a.context.join(' | ')}`).join('\n') : '无相关作者搜索结果'}`}
 - 漫画相关评论如下：
 ${detail.comments && detail.comments.length > 0 ? detail.comments.slice(0, 30).join('\n') : '无相关评论'}
-- 外部搜索引擎结果参考（可选）：
-${detail.search_context && detail.search_context.length > 0 ? detail.search_context.join('\n') : '无相关搜索结果'}
+${aiConfig.isGeminiFormat ? '' : `- 外部搜索引擎结果参考（可选）：\n${detail.search_context && detail.search_context.length > 0 ? detail.search_context.join('\n') : '无相关搜索结果'}`}
 
 # User Preferences
 - 避雷清单（极度讨厌，绝对不能接受）：${preferences.avoid.join(', ')}
@@ -107,7 +105,7 @@ ${detail.search_context && detail.search_context.length > 0 ? detail.search_cont
         }
       } : null;
 
-      if (baseUrl.includes('generativelanguage.googleapis.com')) {
+      if (aiConfig.isGeminiFormat) {
         // Gemini API
         const parts = [{ text: prompt }];
         if (imagePartGemini) parts.unshift(imagePartGemini as any);
@@ -117,6 +115,7 @@ ${detail.search_context && detail.search_context.length > 0 ? detail.search_cont
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts }],
+            tools: [{ googleSearch: {} }],
             generationConfig: { responseMimeType: 'application/json' }
           }),
         })
@@ -157,7 +156,7 @@ ${detail.search_context && detail.search_context.length > 0 ? detail.search_cont
       const aiData = await aiRes.json()
       let jsonResultStr = ''
 
-      if (baseUrl.includes('generativelanguage.googleapis.com')) {
+      if (aiConfig.isGeminiFormat) {
         jsonResultStr = aiData.candidates[0].content.parts[0].text
       } else {
         jsonResultStr = aiData.choices[0].message.content

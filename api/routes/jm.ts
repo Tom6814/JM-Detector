@@ -76,8 +76,10 @@ router.get('/details/:id', async (req, res) => {
     if (!id) {
       return res.status(400).json({ success: false, error: 'ID is required' })
     }
+    
+    const skip_search = req.query.skip_search === 'true'
 
-    const result = await runPythonScript({ action: 'detail', id })
+    const result = await runPythonScript({ action: 'detail', id, skip_search })
     res.json(result)
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message })

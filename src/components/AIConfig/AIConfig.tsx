@@ -12,9 +12,8 @@ export function AIConfig() {
     setTesting(true)
     setTestResult(null)
     try {
-      // Very simple test, trying to list models or just hit the models endpoint
       let url = aiConfig.baseUrl.replace(/\/$/, '')
-      if (url.includes('generativelanguage.googleapis.com')) {
+      if (aiConfig.isGeminiFormat) {
         // Gemini API test
         const res = await fetch(`${url}/models?key=${aiConfig.apiKey}`)
         if (!res.ok) {
@@ -80,10 +79,28 @@ export function AIConfig() {
                 setAiConfig({ baseUrl: e.target.value, isValidated: false })
                 setTestResult(null)
               }}
-              placeholder="https://api.openai.com/v1"
+              placeholder={aiConfig.isGeminiFormat ? "https://generativelanguage.googleapis.com/v1beta" : "https://api.openai.com/v1"}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 focus:outline-none focus:border-blue-500 transition-colors"
             />
-            <p className="text-xs text-zinc-500 mt-1">支持 OpenAI 格式或 Google Gemini 格式</p>
+          </div>
+
+          <div className="flex items-center justify-between bg-zinc-950 border border-zinc-800 rounded-lg p-3">
+            <div>
+              <p className="text-sm font-medium text-zinc-200">使用 Gemini 格式</p>
+              <p className="text-xs text-zinc-500">开启后将使用 Google Gemini API 格式并启用自带联网</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                className="sr-only peer"
+                checked={aiConfig.isGeminiFormat}
+                onChange={(e) => {
+                  setAiConfig({ isGeminiFormat: e.target.checked, isValidated: false });
+                  setTestResult(null);
+                }}
+              />
+              <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+            </label>
           </div>
 
           <div>

@@ -7,6 +7,7 @@ interface AppState {
     model: string
     apiKey: string
     isValidated: boolean
+    isGeminiFormat: boolean
   }
   preferences: {
     avoid: string[]
@@ -24,6 +25,7 @@ export const useStore = create<AppState>()(
         model: 'gpt-4o',
         apiKey: '',
         isValidated: false,
+        isGeminiFormat: false,
       },
       preferences: {
         avoid: ['NTR', '绿帽', '重口', '屎尿', '猎奇'],
